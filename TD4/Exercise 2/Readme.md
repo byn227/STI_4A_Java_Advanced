@@ -21,7 +21,7 @@ Implémenter une simulation de trois comptes bancaires. Plusieurs threads réali
 Exécuter depuis la racine du dépôt:
 
 ```cmd
-cd "TD4\Exercise 2"
+cd TD4\Exercise 2
 javac *.java
 java BankTestTP
 ```
