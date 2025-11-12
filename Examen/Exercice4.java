@@ -1,61 +1,64 @@
-import java.util.concurrent.Semaphore; 
+import java.util.concurrent.Semaphore;
 import java.util.Random;
-
-// Créer une classe CarPark qui contient un sémaphore 
-class CarPark { 
-    private final Semaphore parkingSemaphore = new Semaphore(3); 
-    private final Random random = new Random();
-
-    public void enter(int carId) throws InterruptedException {
-        // Le thread (voiture) attend jusqu'à ce qu'une autorisation soit disponible 
-        System.out.println("Voiture " + carId + " arrive et attend une place...");
-        parkingSemaphore.acquire(); 
-    
-        System.out.println("Voiture " + carId + " ENTRE dans le parking.");
+public class Exercice4{
+    public static void main(String[] args) {
+        CarPark parking = new CarPark(4); 
+        final int numberOfCars = 8;     
+        System.out.println("Simulation d'un parking avec 4 places et 8 voitures.");
         
-        // Simuler le temps passé (1 à 3 secondes) 
-        int waitTime = random.nextInt(2000) + 1000; // entre 1000ms et 3000ms
-        
-        try {
-            Thread.sleep(waitTime); 
-        } catch (InterruptedException e) {
-            System.err.println("Voiture " + carId + " a été interrompue pendant son séjour.");
-            Thread.currentThread().interrupt();
+        for (int i = 1; i <= numberOfCars; i++) {
+            Car car = new Car(parking, i);
+            car.start(); 
         }
-        parkingSemaphore.release(); 
-        System.out.println("Voiture " + carId + " SORT du parking.");
     }
 }
-class Car extends Thread {
-    private final int carId;
-    private final CarPark park;
-
-    public Car(int id, CarPark park) {
-        this.carId = id;
-        this.park = park;
+class CarPark {
+    private final Semaphore semaphore;
+    private int carsInside = 0;
+    public CarPark(int capacity) {
+        this.semaphore = new Semaphore(capacity, true); 
     }
+    public Semaphore getSemaphore() {
+        return semaphore;
+    }
+    public synchronized void printEnter(int carNumber) {
+        carsInside++;
+        System.out.println("-> Voiture " + carNumber + " ENTRE dans le parking.");
+    }
+    
+    public synchronized void printExit(int carNumber) {
+        carsInside--;
+        System.out.println("<- Voiture " + carNumber + " SORT du parking.");
+    }
+}
 
+class Car extends Thread {
+    private final CarPark park;
+    private final int carNumber;
+    private static final Random random = new Random();
+
+    public Car(CarPark park, int carNumber) {
+        this.park = park;
+        this.carNumber = carNumber;
+    }
     @Override
     public void run() {
-        try {
-            park.enter(carId);
-        } catch (InterruptedException e) {
-            System.err.println("Voiture " + carId + " a terminé prématurément");
-            Thread.currentThread().interrupt();
-        }
-    }
-}
-public class Exercice4 {
-    public static void main(String[] args) {
-        CarPark sharedPark = new CarPark();
+        Semaphore semaphore = park.getSemaphore();
         
-        // Créez 6 voitures et démarrez-les simultanément. 
-        System.out.println("Démarrage de la simulation (Parking de 3 places)");
+        try {
+            // acquérir le sémaphore 
+            semaphore.acquire();
+            // afficher le message d'entrée de manière synchronisée
+            park.printEnter(carNumber);
+            // attendre 2 à 5 secondes
+            long waitTime = random.nextInt(3001) + 2000; 
+            Thread.sleep(waitTime); 
 
-        for (int i = 1; i <= 6; i++) {
-            Car car = new Car(i, sharedPark);
-            car.setName("Voiture-" + i);
-            car.start();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            park.printExit(carNumber);
+            semaphore.release();
         }
     }
 }
